@@ -84,7 +84,37 @@ Humanize the prose in docs/launch-post.md
 
 ### Voice Calibration
 
-To match your personal writing style, provide a sample of your own writing:
+To match your personal writing style, give the skill a sample of your own writing. Set it up once in a file and every later run picks it up automatically:
+
+```bash
+mkdir -p ~/.claude/humanizer
+$EDITOR ~/.claude/humanizer/voice.md
+```
+
+Paste two or three passages of your own prose under a `## Samples` heading. Aim for 150 words minimum, and include more than one register if you write in more than one:
+
+```markdown
+## Samples
+
+[a few paragraphs you wrote]
+
+[another passage, different register]
+```
+
+The first run analyzes those samples, appends the derived profile to the same file, and reuses it from then on. Edit your samples later and delete the `## Profile` block to force a re-derive.
+
+The skill looks in this order and stops at the first hit:
+
+| Order | Source | Use it for |
+|---|---|---|
+| **1st** | A sample pasted into the conversation, or a file you point at | One-off calibration, or borrowing someone else's voice |
+| **2nd** | `.humanizer-voice.md` in the project root | A per-repo voice, committable and shared with collaborators |
+| **3rd** | `~/.claude/humanizer/voice.md` | Your default voice everywhere |
+| **none** | Nothing found | Falls back to the generic house style |
+
+A project file overrides your global one, so docs for a given repo can hold their own voice. The skill names which source it used before drafting, so a fall-through to the house style is visible rather than silent.
+
+For a one-off, skip the file entirely:
 
 ```
 /humanizer
@@ -96,7 +126,11 @@ Now humanize this text:
 [paste AI text to humanize]
 ```
 
-The skill will analyze your sentence rhythm, word choices, and quirks, then apply them to the rewrite instead of producing generic "clean" output.
+A sample changes how the skill runs, not just how the output reads. Before touching your text it writes out a profile of the sample: sentence-length range, punctuation rates per 100 words, register, pet words, recurring openers, and a list of **protected habits**. Protected habits are the numbered patterns your own writing already breaks. If you write in triads, the rule-of-three check is switched off for that rewrite. If you use em dashes, so does the output, at roughly your rate. Stripping a protected habit counts as a defect, the same as inventing a fact, and the final audit pass checks for it explicitly.
+
+A sample governs how the writing sounds, not what it claims, so some rules stay put. It never licenses inventing facts. The content patterns (#1 through #6: puffery, vague attribution, and the rest) still apply, since an author fond of a habit does not make it accurate. Emojis, curly quotes, and chatbot artifacts stay banned regardless, because those come from the generating tool rather than from you. Every style rule below that yields to the sample.
+
+Calibration runs in every invocation mode. Only its visibility changes: pasted text shows you the profile, file mode notes the matched habits in its summary, and embedded callers get the calibrated prose with no ceremony around it.
 
 ## Overview
 
@@ -207,6 +241,9 @@ Rewrites follow a no-fabrication rule: they never add facts, names, dates, or ci
 
 ## Version History
 
+- **2.11.1** - Resolved a contradiction in the voice file spec: `SKILL.md` banned samples the user did not author, which blocked the documented case of targeting another writer's voice. Third-party samples are now allowed when the user picks that target, provided the writing is real and attributed; inventing prose to fill the file stays banned. Also defined what happens to sections other than `## Samples` and `## Profile`: they are honored as standing instruction but do not move in the precedence order. No change to the 33 patterns.
+- **2.11.0** - Gave voice calibration somewhere to live. It previously had to be re-pasted every session, so in practice it rarely ran. The skill now checks `.humanizer-voice.md` in the project root and `~/.claude/humanizer/voice.md`, in that order, even when the user says nothing about voice, and names the source it used so a fall-through to the house style is visible. The file holds raw samples; the first run derives the profile and caches it in the same file, and deleting that block forces a re-derive. Placeholder or very short files are ignored rather than treated as a voice. No change to the 33 patterns.
+- **2.10.0** - Made voice calibration binding instead of advisory. It had been an optional aside that the runtime loop never referenced, so the 33 pattern rules ran over a provided sample. It is now step 0 of the process, it requires a written profile with a protected-habit list before drafting, it carries an explicit precedence order (no-fabrication first, then a hard floor of emojis/curly quotes/chatbot artifacts, then the sample, then everything else), and a third audit question checks the rewrite against the profile so a scrubbed protected habit is caught as a defect. `PERSONALITY AND SOUL` is now subordinate to a real sample rather than competing with it. No change to the 33 patterns.
 - **2.9.1** - Improved distribution and portability: removed nonportable frontmatter and tool preapprovals, made global installation the documented default, added package validation, and removed the duplicated long-form example from the runtime prompt. No change to the 33 patterns.
 - **2.9.0** - Added a no-fabrication rule: rewrites may not invent facts, names, dates, or citations not present in the source, and every example that modeled invented specifics was re-cut to use only source information (fixes #187). Replaced paragraph-count parity with an information-over-shape rule, made a user's voice sample outrank the em dash ban, and added invocation modes (pasted text / file / embedded). No change to the 33 patterns.
 - **2.8.3** - Moved the skill version from the unsupported top-level frontmatter key to `metadata.version` for Agent Skills and Claude compatibility. No change to the 33 patterns.

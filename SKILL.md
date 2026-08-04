@@ -6,10 +6,12 @@ description: |
   comprehensive "Signs of AI writing" guide. Detects and fixes patterns including:
   inflated symbolism, promotional language, superficial -ing analyses, vague
   attributions, em dash overuse, rule of three, AI vocabulary words, passive
-  voice, negative parallelisms, and filler phrases.
+  voice, negative parallelisms, and filler phrases. When given a sample of the
+  user's own writing, calibrates to that voice and preserves the author's
+  habits instead of scrubbing them.
 license: MIT
 metadata:
-  version: "2.9.1"
+  version: "2.11.1"
 ---
 
 # Humanizer: Remove AI Writing Patterns
@@ -23,19 +25,72 @@ When given text to humanize:
 1. **Identify AI patterns** - Scan for the patterns listed below.
 2. **Preserve the information, not the shape** - Every claim in the original survives into the rewrite, but depth doesn't have to be uniform: compress the dull parts, dwell where a human would, and merge or split paragraphs freely. When keeping the information and mirroring the original's structure pull in different directions, the information wins.
 3. **Never invent facts** - The rewrite must not contain any fact, name, number, date, quote, or citation that isn't in the source text. Swapping a vague claim for a specific one is allowed only when the specific comes from the source or from the user; if a sentence needs real-world detail to work, ask for it or write the plain version without it. Opinions and reactions are voice, not facts: where PERSONALITY AND SOUL applies you may add stance, but never new factual claims. (In fiction, invented detail is the job. This rule governs everything else.)
-4. **Match the voice** - Fit the intended tone (formal, casual, technical). Add personality only when the content and the author's voice call for it (see PERSONALITY AND SOUL).
+4. **Match the voice** - Fit the intended tone (formal, casual, technical). When the user provides a sample of their own writing, Voice Calibration runs first and outranks most of the style rules below. Add personality only when the content and the author's voice call for it (see PERSONALITY AND SOUL).
 
 How you're invoked changes what you deliver (see Invocation Modes). The draft → audit → final loop itself is defined under Process and Output, below.
 
 ## Voice Calibration
 
-If the user provides a writing sample (their own previous writing), analyze it before rewriting:
+Voice is resolved **before** any rewriting, as step 0 of the process. Look for a sample in this order and stop at the first hit:
 
-1. Read the sample first. Note its sentence lengths, vocabulary, paragraph openings, punctuation, recurring phrases, and transitions.
-2. Match those habits instead of merely deleting AI patterns. Do not upgrade casual words or regularize deliberate quirks.
-3. Without a sample, use the default behavior below.
+1. Writing the user pasted into the conversation, or a file they pointed at.
+2. `.humanizer-voice.md` in the project root.
+3. `~/.claude/humanizer/voice.md`.
+4. Nothing.
 
-A sample outranks this skill's style rules, including the em dash rule in §14: if the sample uses em dashes, keep them at roughly the sample's frequency. Matching the author beats scrubbing the tell.
+Hits 1 through 3 are **Case A**: build the profile and apply it. A miss is **Case B**: use the default behavior in the rest of this document. Name the source you used before drafting, so falling through to Case B is visible rather than silent.
+
+Check paths 2 and 3 even when the user says nothing about voice, since running unprompted is the entire reason they exist. A file holding only a template, placeholder text, or fewer than roughly 150 words of real prose is not a sample; treat it as Case B and say so. In Case A, do not skip ahead to the pattern list. Build the profile first.
+
+### The voice file
+
+Both paths use one format: the user's writing, plus an optional cached profile.
+
+```markdown
+## Samples
+[one or more passages the user wrote]
+
+<!-- derived, delete this block to re-derive -->
+## Profile
+[the profile block below]
+```
+
+If a `## Profile` block is present, trust it and skip the analysis. If only samples are present, derive the profile, append it under that comment marker, and mention that you did. Deleting the block is how the user forces a re-derive after editing their samples. Never write to the file for any other reason, and never invent prose to fill it. A sample by someone other than the user is legitimate when they picked that writer as a target, but it has to be real writing, attributed to whoever wrote it.
+
+Any other section in the file is standing instruction from the user: honor it while rewriting, but it does not move in the precedence order, so it never overrides levels 1 through 3.
+
+### Building the profile (Case A)
+
+Read the sample and **write the profile out as text** before drafting. A profile you only thought about does not survive 300 lines of contrary instruction; one on the page does.
+
+```
+Cadence:     median sentence N words, range N-N; paragraphs N-N sentences
+Punctuation: per 100 words - em dash N, semicolon N, parens N, colon N, exclamation N
+Register:    formal / casual / technical; contractions yes/no; first person yes/no
+Pet words:   words and phrases the author reuses
+Openers:     how sentences and paragraphs start; recurring transitions
+Structure:   headings, lists, boldface habits
+Protected:   §N, §N, §N
+```
+
+**Protected habits are the point of the exercise.** Walk the style patterns, §7 through §33, and list every one the sample itself violates. Those numbers are off-limits for this rewrite. If the author writes in triads, §10 is off. If they open with "Look," §33 is off. If they bold key terms, §15 is off. If they use em dashes, §14 is off and you match their rate. Removing a protected habit is a defect, ranked with a fabricated fact, not a stylistic preference.
+
+Match the habits rather than merely deleting AI patterns. Do not upgrade casual words, regularize deliberate quirks, or even out a rhythm the author varies on purpose.
+
+### Precedence
+
+When the sample and this document disagree, resolve in this order:
+
+1. **No fabrication.** (Your Task #3 and §21.) A sample never licenses inventing a fact, name, number, date, or citation.
+2. **Content patterns §1 through §6.** A sample governs how the writing sounds, not what it claims. An author fond of puffery or vague attribution does not make either one accurate, so these still apply.
+3. **Hard floor, never overridable.** §18 emojis, §19 curly quotes, §20 chatbot artifacts. These are artifacts of the generating tool rather than authorial habits, so a sample containing them is contaminated, not distinctive.
+4. **The sample.** Outranks every remaining rule in this document, including the em dash ban in §14.
+5. **Style and cadence patterns.** §7 through §17 and §21 through §33 apply wherever the sample is silent.
+6. **PERSONALITY AND SOUL defaults.** Generic voice advice fills gaps the sample leaves open, and never contradicts it.
+
+Only levels 4 and 5 are contestable. A protected habit can only ever be a style habit, so if you find yourself protecting §1 through §6, you have misread the sample's voice as its content.
+
+Matching the author beats scrubbing the tell.
 
 ## PERSONALITY AND SOUL
 
@@ -44,6 +99,8 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 **Apply this section only when the content and the author's voice call for it** - blog posts, essays, opinion, personal writing. For encyclopedic, technical, legal, or reference text, neutral and plain *is* the correct human voice; don't inject opinions or first person there.
 
 When voice is appropriate, avoid uniform sentence structures, bloodless neutrality, and perfect organization. Let the writer have opinions, uncertainty, mixed feelings, humor, asides, and uneven rhythm. Never add factual claims to create that personality.
+
+This section describes a generic human voice, so it ranks below a real one. In Case A it fills only the gaps the profile leaves open: where the sample shows a habit, the sample wins.
 
 ## CONTENT PATTERNS
 
@@ -180,7 +237,7 @@ When voice is appropriate, avoid uniform sentence structures, bloodless neutrali
 **After:**
 > The new policy, announced without warning, affects thousands of workers. The changes, long overdue according to critics, will take effect immediately.
 
-Before returning the final rewrite, scan it for `—` and `–`. Any hit means the draft isn't done. One exception: a user-provided writing sample that uses em dashes overrides this rule (see Voice Calibration); match the sample's frequency instead of banning them.
+Before returning the final rewrite, scan it for `—` and `–`. Any hit means the draft isn't done. One exception: a user-provided writing sample that uses em dashes protects them (see Voice Calibration). Then this rule is off for that rewrite and you match the sample's rate instead of cutting to zero.
 
 ### 15. Overuse of Boldface
 **Problem:** AI chatbots emphasize phrases in boldface mechanically.
@@ -371,6 +428,7 @@ A clean human writer can hit several of the patterns above without any AI involv
 - **Unsourced claims.** Most of the web is unsourced. Lack of citations doesn't prove anything.
 - **Correct, complex formatting.** Visual editors and templates produce clean output without any AI.
 - **Secondhand text.** Do not rewrite watched phrases inside quotations, titles, proper names, or examples where the phrase is being discussed rather than used.
+- **Anything the sample protects.** In Case A a protected habit is evidence of the author, so it is the opposite of a tell. Leave it alone even when it sits on this skill's own list.
 
 When in doubt, look for **clusters** of tells, not isolated ones. A single em dash means nothing; em dashes plus rule-of-three plus *vibrant tapestry* plus a "Conclusion" section is a confession.
 
@@ -396,14 +454,20 @@ When you see these, lean toward leaving the prose alone — they are evidence of
 
 **Embedded mode.** Another task or agent is using this skill as one step of a larger job (a PR description, a commit message, a doc). Run the loop internally and output only the final text. No draft, no audit bullets, no summary. The caller wants prose, not ceremony.
 
+Voice calibration runs in all three modes, including the lookup of `.humanizer-voice.md` and `~/.claude/humanizer/voice.md`. Only its visibility changes: pasted-text mode shows the profile, file mode names the source and the matched habits in its summary, and embedded mode keeps it internal. An embedded caller that never mentions voice still gets a calibrated rewrite when a voice file exists.
+
 ## Process and Output
 
-1. Read the input carefully and identify every instance of the patterns above.
-2. Write a **draft rewrite**. Check that it reads naturally aloud, varies sentence length, prefers specific details and simple constructions (is/are/has), and keeps the appropriate register.
-3. Ask two questions: **"What makes the below so obviously AI generated?"** and **"Does the rewrite state any fact, name, number, date, or citation that isn't in the source?"** Answer briefly. A fabrication is a defect even when it sounds more human than the vague original.
-4. Revise into a **final rewrite** that addresses them and contains no em or en dashes (see §14).
+0. **Resolve voice.** Walk the lookup order and name the source you landed on (see Voice Calibration). In Case A, write the profile and its protected-habit list now, before you read the input for patterns. Skipping this step is the single most common way a rewrite goes wrong.
+1. Read the input carefully and identify every instance of the patterns above, skipping any pattern number the profile protects.
+2. Write a **draft rewrite**. Check that it reads naturally aloud, varies sentence length, prefers specific details and simple constructions (is/are/has), and keeps the appropriate register. In Case A the profile defines the register, the cadence, and the punctuation.
+3. Ask these questions and answer each briefly:
+   - **"What makes the below so obviously AI generated?"**
+   - **"Does the rewrite state any fact, name, number, date, or citation that isn't in the source?"** A fabrication is a defect even when it sounds more human than the vague original.
+   - Case A only: **"Which choices here came from the profile, and where did I fall back on the house style instead?"** Count the rewrite's sentence lengths and punctuation against the profile's numbers, and confirm every protected habit still appears. A protected habit that vanished is a defect, and the fix is to restore it rather than to justify it.
+4. Revise into a **final rewrite** that addresses the answers. In Case B it contains no em or en dashes (see §14). In Case A its punctuation and cadence track the profile.
 
-In pasted-text mode, deliver the draft, the brief "still-AI" bullets, the final rewrite, and (optionally) a short summary of changes. In file and embedded modes, run the same loop but deliver only what the mode calls for (see Invocation Modes).
+In pasted-text mode, deliver the profile (Case A only), the draft, the brief audit bullets, the final rewrite, and (optionally) a short summary of changes. In file and embedded modes, run the same loop but deliver only what the mode calls for (see Invocation Modes).
 
 ## Reference
 
